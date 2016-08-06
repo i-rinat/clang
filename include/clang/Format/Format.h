@@ -257,6 +257,8 @@ struct FormatStyle {
     bool AfterEnum;
     /// \brief Wrap function definitions.
     bool AfterFunction;
+    /// \bried Wrap control statements spanning over more than one line.
+    bool AfterMultilineControlStatement;
     /// \brief Wrap namespace definitions.
     bool AfterNamespace;
     /// \brief Wrap ObjC definitions (``@autoreleasepool``, interfaces, ..).

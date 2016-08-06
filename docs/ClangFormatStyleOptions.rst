@@ -340,6 +340,7 @@ the configuration (without a prefix: ``Auto``).
   * ``bool AfterControlStatement`` Wrap control statements (``if``/``for``/``while``/``switch``/..).
   * ``bool AfterEnum`` Wrap enum definitions.
   * ``bool AfterFunction`` Wrap function definitions.
+  * ``bool AfterMultilineControlStatement`` Wrap control statements that span over more than one line.
   * ``bool AfterNamespace`` Wrap namespace definitions.
   * ``bool AfterObjCDeclaration`` Wrap ObjC definitions (``@autoreleasepool``, interfaces, ..).
   * ``bool AfterStruct`` Wrap struct definitions.

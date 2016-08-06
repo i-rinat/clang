@@ -152,9 +152,11 @@ private:
 class CompoundStatementIndenter {
 public:
   CompoundStatementIndenter(UnwrappedLineParser *Parser,
-                            const FormatStyle &Style, unsigned &LineLevel)
+                            const FormatStyle &Style, unsigned &LineLevel,
+                            bool multiline = false)
       : LineLevel(LineLevel), OldLineLevel(LineLevel) {
-    if (Style.BraceWrapping.AfterControlStatement)
+    if (Style.BraceWrapping.AfterControlStatement ||
+        (multiline && Style.BraceWrapping.AfterMultilineControlStatement))
       Parser->addUnwrappedLine();
     if (Style.BraceWrapping.IndentBraces)
       ++LineLevel;
@@ -1425,7 +1427,7 @@ void UnwrappedLineParser::parseIfThenElse() {
     parseParens();
   bool NeedsUnwrappedLine = false;
   if (FormatTok->Tok.is(tok::l_brace)) {
-    CompoundStatementIndenter Indenter(this, Style, Line->Level);
+    CompoundStatementIndenter Indenter(this, Style, Line->Level, true);
     parseBlock(/*MustBeDeclaration=*/false);
     if (Style.BraceWrapping.BeforeElse)
       addUnwrappedLine();
@@ -1478,7 +1480,7 @@ void UnwrappedLineParser::parseTryCatch() {
     parseParens();
   }
   if (FormatTok->is(tok::l_brace)) {
-    CompoundStatementIndenter Indenter(this, Style, Line->Level);
+    CompoundStatementIndenter Indenter(this, Style, Line->Level, true);
     parseBlock(/*MustBeDeclaration=*/false);
     if (Style.BraceWrapping.BeforeCatch) {
       addUnwrappedLine();
@@ -1583,7 +1585,7 @@ void UnwrappedLineParser::parseForOrWhileLoop() {
   if (FormatTok->Tok.is(tok::l_paren))
     parseParens();
   if (FormatTok->Tok.is(tok::l_brace)) {
-    CompoundStatementIndenter Indenter(this, Style, Line->Level);
+    CompoundStatementIndenter Indenter(this, Style, Line->Level, true);
     parseBlock(/*MustBeDeclaration=*/false);
     addUnwrappedLine();
   } else {
@@ -1660,7 +1662,7 @@ void UnwrappedLineParser::parseSwitch() {
   if (FormatTok->Tok.is(tok::l_paren))
     parseParens();
   if (FormatTok->Tok.is(tok::l_brace)) {
-    CompoundStatementIndenter Indenter(this, Style, Line->Level);
+    CompoundStatementIndenter Indenter(this, Style, Line->Level, true);
     parseBlock(/*MustBeDeclaration=*/false);
     addUnwrappedLine();
   } else {

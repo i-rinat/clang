@@ -224,6 +224,31 @@ private:
       }
       return MergedLines;
     }
+
+    // try to reattach left brace to singleline control statement
+    if (!Style.BraceWrapping.AfterControlStatement &&
+        Style.BraceWrapping.AfterMultilineControlStatement &&
+        I[1]->First->is(tok::l_brace) &&
+        (Style.ColumnLimit == 0 ||
+         TheLine->Last->TotalLength + Indent < Style.ColumnLimit)) {
+      if (TheLine->First->isOneOf(tok::kw_if, tok::kw_for, tok::kw_while,
+                                  TT_ForEachMacro, tok::kw_switch, tok::kw_try,
+                                  tok::kw___try))
+        return 1;
+
+      // merge left brace in "else if (...) {"
+      if (TheLine->First->is(tok::kw_else) && TheLine->First->Next &&
+          TheLine->First->Next->is(tok::kw_if))
+        return 1;
+
+      // merge left brace in "} else if (...) {"
+      if (TheLine->First->is(tok::r_brace) && TheLine->First->Next &&
+          TheLine->First->Next->is(tok::kw_else) &&
+          TheLine->First->Next->Next &&
+          TheLine->First->Next->Next->is(tok::kw_if))
+        return 1;
+    }
+
     if (TheLine->First->is(tok::kw_if)) {
       return Style.AllowShortIfStatementsOnASingleLine
                  ? tryMergeSimpleControlStatement(I, E, Limit)
@@ -264,7 +289,8 @@ private:
       SmallVectorImpl<AnnotatedLine *>::const_iterator E, unsigned Limit) {
     if (Limit == 0)
       return 0;
-    if (Style.BraceWrapping.AfterControlStatement &&
+    if ((Style.BraceWrapping.AfterControlStatement ||
+         Style.BraceWrapping.AfterMultilineControlStatement) &&
         (I[1]->First->is(tok::l_brace) && !Style.AllowShortBlocksOnASingleLine))
       return 0;
     if (I[1]->InPPDirective != (*I)->InPPDirective ||
