@@ -24,6 +24,10 @@
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Signals.h"
 
+#include <emscripten/bind.h>
+
+using namespace emscripten;
+
 using namespace llvm;
 using clang::tooling::Replacements;
 
@@ -306,6 +310,43 @@ static bool format(StringRef FileName) {
   return false;
 }
 
+std::string format_string(std::string style, std::string content) {
+  FormatStyle format_style = getLLVMStyle();
+  if (std::error_code ec = parseConfiguration(style, &format_style))
+    return content;
+
+  std::vector<tooling::Range> ranges;
+  std::unique_ptr<llvm::MemoryBuffer> content_mem_buf =
+      MemoryBuffer::getMemBuffer(content);
+
+  fillRanges(content_mem_buf.get(), ranges);
+
+  unsigned cursor_position = 0;
+  Replacements replaces =
+      sortIncludes(format_style, content_mem_buf->getBuffer(), ranges,
+                   "file.cc", &cursor_position);
+  auto content2 =
+      tooling::applyAllReplacements(content_mem_buf->getBuffer(), replaces);
+
+  if (!content2)
+    return content;
+
+  for (const auto &r : replaces)
+    ranges.push_back({r.getOffset(), r.getLength()});
+
+  bool incomplete_format = false;
+  Replacements format_changes =
+      reformat(format_style, *content2, ranges, "file.cc", &incomplete_format);
+  replaces = replaces.merge(format_changes);
+
+  auto content3 =
+      tooling::applyAllReplacements(content_mem_buf->getBuffer(), replaces);
+  if (!content3)
+    return content;
+
+  return *content3;
+}
+
 }  // namespace format
 }  // namespace clang
 
@@ -314,6 +355,7 @@ static void PrintVersion() {
   OS << clang::getClangToolFullVersion("clang-format") << '\n';
 }
 
+/*
 int main(int argc, const char **argv) {
   llvm::sys::PrintStackTraceOnErrorSignal(argv[0]);
 
@@ -361,4 +403,24 @@ int main(int argc, const char **argv) {
   }
   return Error ? 1 : 0;
 }
+*/
 
+std::string clang_format_string(std::string style, std::string content) {
+  return clang::format::format_string(style, content);
+}
+
+EMSCRIPTEN_BINDINGS(my_module) {
+    function("clang_format_string", &clang_format_string);
+}
+
+int main() {
+  auto s = clang_format_string(
+      "{BasedOnStyle: LLVM, IndentWidth: 8}",
+      "#include <c.h>\n"
+      "#include <b.h>\n"
+      "#include <a.h>\n"
+      "\n"
+      "int main() { puts(\"hello, world\\n\"); return (1+2+3)*0; }\n");
+
+  printf("result:\n%s\n", s.c_str());
+}
